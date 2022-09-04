@@ -111,11 +111,12 @@ class Story(models.Model):
 
 class RkCompany(models.Model):
     rk = models.ForeignKey(Rk, on_delete=models.CASCADE)
-    Razom_number = models.ForeignKey(Totalplanes, on_delete=models.CASCADE)
+    Razom_number = models.ForeignKey(Totalplanes, related_name='rz', on_delete=models.CASCADE)
     Grade = models.IntegerField(null=True)
     story = models.ForeignKey(Story, on_delete=models.CASCADE, default=1)
     comment = models.CharField(max_length=400, null=True)
     price = models.IntegerField(null=True)
+    GradeNew = models.BooleanField(null=True)
 
     def __str__(self):
         return str(self.rk) + " " + str(self.Razom_number) + " " + str(self.story)
