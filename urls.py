@@ -13,4 +13,6 @@ urlpatterns = [
     path('api/rktest', StoryTestApi.as_view()),
     path('api/rktest/2', StoryTestApi2.as_view()),
     path('api/rkposttest', RkTestApi.as_view()),
+    path('api/logout', LogOut.as_view()),
+    path('api/login', LogIn.as_view()),
 ]
