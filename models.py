@@ -119,7 +119,8 @@ class RkCompany(models.Model):
     GradeNew = models.BooleanField(null=True)
 
     def __str__(self):
-        return str(self.rk) + " " + str(self.Razom_number) + " " + str(self.story)
+        return str(self.Razom_number)
+            # str(self.rk) + " " + str(self.Razom_number) + " " + str(self.story)
 
 class PermisionUsersClient(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
