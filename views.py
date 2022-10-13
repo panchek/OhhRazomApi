@@ -30,25 +30,89 @@ class GetRK(APIView):
                         return Response(serializer.data)
 
 
-class GetCity(APIView):
+class GetAutoCompleteList(APIView):
     # permission_classes = (IsAuthenticated,)
     serializer_class = RkCompanySerializer
 
-    def get(self, request, rk_name, *args, **kwargs):
+    def get(self, request, rk_name, filter_type_name, *args, **kwargs):
         # if request.user.is_authenticated:
         # if rk_name is not 'null':
-            mapping = {'Razom_number__city_standart__city_standart_UA':'city',
-                   'Razom_number__city_standart': 'id'}
-            data = RkCompany.objects.filter(rk__RK=rk_name)\
-                    .values(
-                        'Razom_number__city_standart__city_standart_UA',
-                        'Razom_number__city_standart')
+            MAPPING = {
+                        'Razom_number__city_standart': 'id',
+                        'Razom_number__city_standart__city_standart_UA': 'value_name',
+                        'Razom_number__format': 'id',
+                        'Razom_number__format__format': 'value_name',
+                       }
+            if filter_type_name == 'city':
+                data = RkCompany.objects.filter(rk__RK=rk_name)\
+                        .values(
+                            'Razom_number__city_standart__city_standart_UA',
+                            'Razom_number__city_standart')
+
+            elif filter_type_name == 'format':
+                data = RkCompany.objects.filter(rk__RK=rk_name)\
+                        .values(
+                            'Razom_number__format',
+                            'Razom_number__format__format')
             # print('000000', data)
             data = list(data)
             list1 = []
             for i in data:
-                ne = {mapping[key]: value for key, value in i.items()}
+                ne = {MAPPING[key]: value for key, value in i.items()}
                 list1.append(ne)
+            # print(list1)
+            res = list({i['id']: i for i in list1}.values())
+
+
+            # serializer = RkCompanySerializer(data, many=True)
+            return JsonResponse({'data': res})
+
+
+class GetAutoCompleteList(APIView):
+    # permission_classes = (IsAuthenticated,)
+    serializer_class = RkCompanySerializer
+
+
+    def post(self, request, *args, **kwargs):
+            rk_name = request.data['rk_name']
+            city_name = request.data['city_name'].split(',')
+            format_name = request.data['format_name'].split(',')
+            filter_type_name = request.data['filter_type_name']
+
+            MAPPING = {
+                        'Razom_number__city_standart': 'id',
+                        'Razom_number__city_standart__city_standart_UA': 'value_name',
+                        'Razom_number__format': 'id',
+                        'Razom_number__format__format': 'value_name',
+                       }
+            data = RkCompany.objects\
+                .filter(rk__RK=rk_name)
+
+            if city_name[0] != 'zer0':
+                data = data \
+                    .filter(Razom_number__city_standart__city_standart_UA__in=city_name)
+            if format_name[0] != 'zer0':
+                data = data \
+                    .filter(Razom_number__format__format__in=format_name)
+
+            if filter_type_name == 'city':
+                data = data\
+                        .values(
+                            'Razom_number__city_standart__city_standart_UA',
+                            'Razom_number__city_standart')
+
+            elif filter_type_name == 'format':
+                data = data\
+                        .values(
+                            'Razom_number__format',
+                            'Razom_number__format__format')
+            # print('000000', data)
+            data = list(data)
+            list1 = []
+            for i in data:
+                ne = {MAPPING[key]: value for key, value in i.items()}
+                list1.append(ne)
+            # print(list1)
             res = list({i['id']: i for i in list1}.values())
 
 
@@ -141,3 +205,38 @@ class CityApi(APIView):
                         .filter(Razom_number__city_standart__city_standart_UA=city_name)
             serializer = RkCompanySerializer(data, many=True)
             return Response(serializer.data)
+
+
+
+
+
+class GetData(APIView):
+    serializer_class = RkCompanySerializer
+
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        rk_name = request.data['rk_name']
+        city_name = request.data['city_name'].split(',')
+        format_name = request.data['format_name'].split(',')
+        # type_name = request.data['type_name']
+
+        try:
+
+            data = RkCompany.objects \
+                .filter(rk__RK=rk_name)
+
+            if city_name[0] != 'zer0':
+                data = data \
+                    .filter(Razom_number__city_standart__city_standart_UA__in=city_name)
+            if format_name[0] != 'zer0':
+                data = data \
+                    .filter(Razom_number__format__format__in=format_name)
+                # if type_name is not None:
+                #     data = data \
+                #         .filter(Razom_number__type__typeUA=type_name)
+            serializer = RkCompanySerializer(data, many=True)
+            return Response(serializer.data)
+
+        except:
+            print('Oopps')
+
