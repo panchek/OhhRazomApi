@@ -10,6 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.http import JsonResponse
 from django.db.models import F
+from django.db.models import Sum, Count, Case, When, DecimalField
 
 
 class StoryTestApi(generics.ListCreateAPIView):
@@ -30,42 +31,42 @@ class GetRK(APIView):
                         return Response(serializer.data)
 
 
-class GetAutoCompleteList(APIView):
-    # permission_classes = (IsAuthenticated,)
-    serializer_class = RkCompanySerializer
-
-    def get(self, request, rk_name, filter_type_name, *args, **kwargs):
-        # if request.user.is_authenticated:
-        # if rk_name is not 'null':
-            MAPPING = {
-                        'Razom_number__city_standart': 'id',
-                        'Razom_number__city_standart__city_standart_UA': 'value_name',
-                        'Razom_number__format': 'id',
-                        'Razom_number__format__format': 'value_name',
-                       }
-            if filter_type_name == 'city':
-                data = RkCompany.objects.filter(rk__RK=rk_name)\
-                        .values(
-                            'Razom_number__city_standart__city_standart_UA',
-                            'Razom_number__city_standart')
-
-            elif filter_type_name == 'format':
-                data = RkCompany.objects.filter(rk__RK=rk_name)\
-                        .values(
-                            'Razom_number__format',
-                            'Razom_number__format__format')
-            # print('000000', data)
-            data = list(data)
-            list1 = []
-            for i in data:
-                ne = {MAPPING[key]: value for key, value in i.items()}
-                list1.append(ne)
-            # print(list1)
-            res = list({i['id']: i for i in list1}.values())
-
-
-            # serializer = RkCompanySerializer(data, many=True)
-            return JsonResponse({'data': res})
+# class GetAutoCompleteList(APIView):
+#     # permission_classes = (IsAuthenticated,)
+#     serializer_class = RkCompanySerializer
+#
+#     def get(self, request, rk_name, filter_type_name, *args, **kwargs):
+#         # if request.user.is_authenticated:
+#         # if rk_name is not 'null':
+#             MAPPING = {
+#                         'Razom_number__city_standart': 'id',
+#                         'Razom_number__city_standart__city_standart_UA': 'value_name',
+#                         'Razom_number__format': 'id',
+#                         'Razom_number__format__format': 'value_name',
+#                        }
+#             if filter_type_name == 'city':
+#                 data = RkCompany.objects.filter(rk__RK=rk_name)\
+#                         .values(
+#                             'Razom_number__city_standart__city_standart_UA',
+#                             'Razom_number__city_standart')
+#
+#             elif filter_type_name == 'format':
+#                 data = RkCompany.objects.filter(rk__RK=rk_name)\
+#                         .values(
+#                             'Razom_number__format',
+#                             'Razom_number__format__format')
+#             # print('000000', data)
+#             data = list(data)
+#             list1 = []
+#             for i in data:
+#                 ne = {MAPPING[key]: value for key, value in i.items()}
+#                 list1.append(ne)
+#             # print(list1)
+#             res = list({i['id']: i for i in list1}.values())
+#
+#
+#             # serializer = RkCompanySerializer(data, many=True)
+#             return JsonResponse({'data': res})
 
 
 class GetAutoCompleteList(APIView):
@@ -239,4 +240,50 @@ class GetData(APIView):
 
         except:
             print('Oopps')
+
+class GetCabinetInfo(APIView):
+
+
+    def get(self, request, *args, **kwargs):
+        dataClient = Client.objects.filter(founder_id=request.user.id) \
+                    .values(
+                        'client',
+                        'agancy__Agancy',
+                        'founder__username',
+                        'isActive',
+                        'permisionusersclient__userId__username',
+                        'permisionusersclient__userId__last_login',
+                        'permisionusersclient__userId__date_joined',
+                    )\
+                    .annotate(total_budget=Sum('rk__rkcompany__price')) \
+                    .annotate(total_product_count=Count('rk__rkcompany')) \
+                    .annotate(total_story_count=Count('rk__rkcompany__story', distinct=True)) \
+                    .annotate(total_rk_count=Count('rk',  distinct=True))
+
+        dataRK = Rk.objects.filter(client__founder__id=request.user.id) \
+            .values(
+                'RK',
+                'client__client',
+                'client__agancy__Agancy',
+                'client__founder__username',
+                'Stage',
+                'create_date',
+                'end_date',
+            ) \
+            .annotate(total_budget=Sum('rkcompany__price')) \
+            .annotate(total_story_count=Count('rkcompany__story', distinct=True)) \
+            .annotate(total_product_count=Count('rkcompany')) \
+            .annotate(total_like_count=Sum(Case(When(rkcompany__Grade=1, then=F('rkcompany__Grade')) \
+                                                , default=0))) \
+            .annotate(total_dislike_count=Sum(Case(When(rkcompany__Grade=2, then=F('rkcompany__Grade')) \
+                                                , default=0))) \
+            # Sum(Case(When(stock__ttype='I', then=F('stock__quantity')), output_field=DecimalField(), default=0))
+
+        json_response = {'dataClient': list(dataClient),
+                          'dataRK': list(dataRK)}
+        print(json_response)
+        return JsonResponse({'data': json_response})
+
+
+
 

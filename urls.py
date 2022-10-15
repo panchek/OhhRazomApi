@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/getstat', GetStat.as_view()),
 
     path('api/getalldata', GetData.as_view()),
+    path('api/getcabinetinfo', GetCabinetInfo.as_view()),
 
     path('api/rktest', StoryTestApi.as_view()),
     path('api/rktest/2', StoryTestApi2.as_view()),

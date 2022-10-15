@@ -91,6 +91,7 @@ class Client(models.Model):
     client = models.CharField(max_length=50, unique=True)
     agancy = models.ForeignKey(Allagancy,on_delete=models.PROTECT)
     founder = models.ForeignKey(User,on_delete=models.PROTECT)
+    isActive = models.BooleanField(null=True)
 
     def __str__(self):
         return self.client
@@ -98,6 +99,9 @@ class Client(models.Model):
 class Rk(models.Model):
     RK = models.CharField(max_length=100)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    create_date = models.DateTimeField(auto_now=True)
+    end_date = models.DateTimeField(auto_now=True)
+    Stage = models.CharField(max_length=100, null=True)
 
     def __str__(self):
         return self.RK
