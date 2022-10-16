@@ -262,6 +262,7 @@ class GetCabinetInfo(APIView):
 
         dataRK = Rk.objects.filter(client__founder__id=request.user.id) \
             .values(
+                'id',
                 'RK',
                 'client__client',
                 'client__agancy__Agancy',
@@ -284,6 +285,49 @@ class GetCabinetInfo(APIView):
         print(json_response)
         return JsonResponse({'data': json_response})
 
+class AdvProductStatistic(APIView):
+    def post(self, request, *args, **kwargs):
+        # print(request.data)
+        request_data = request.data
+        responce_data = \
+        [
+            {
+                "Statistica": "Total amount",
+                "Value": sum([i["Total_budget"] for i in request_data if i["Total_budget"] != '-']),
+                "Description": "-"
+            },
+            {
+                "Statistica": "Total count",
+                "Value": sum([i["Total_product_count"] for i in request_data if i["Total_product_count"] != '-']),
+                "Description": "-"
+            },
+            {
+                "Statistica": "City",
+                "Value":  sum([i[0]for i in list(Rk.objects \
+                    .filter(pk__in=[i["id"] for i in request_data])
+                    .annotate(total_city_count=Count('rkcompany__Razom_number__city_standart__city_standart_UA', distinct=True))
+                    .values_list("total_city_count"))]),
+                "Description": list(Rk.objects \
+                        .filter(pk__in=[i["id"] for i in request_data if i["Total_story_count"] != '-'])
+                        .values_list("rkcompany__Razom_number__city_standart__city_standart_UA").distinct())
+            },
+        ]
+        print(responce_data)
+        return JsonResponse({'data': responce_data})
+
+class ViewActionDetails(APIView):
+    def post(self, request, *args, **kwargs):
+        request_data = request.data
+        response_data = RkCompany.objects\
+                            .filter(rk__id__in=[i["id"] for i in request_data]) \
+                            .exclude(comment__isnull=True) \
+                            .values(
+                                "Razom_number__Razom_number",
+                                "rk__RK",
+                                "comment",
+                            )
+        print(response_data)
+        return JsonResponse({'data': list(response_data)})
 
 
 
