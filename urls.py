@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/getcabinetinfo', GetCabinetInfo.as_view()),
     path('api/advproductstatistic', AdvProductStatistic.as_view()),
     path('api/viewactiondetails', ViewActionDetails.as_view()),
+    path('api/addproduct' , AddNewProduct.as_view()),
 
     path('api/rktest', StoryTestApi.as_view()),
     path('api/rktest/2', StoryTestApi2.as_view()),

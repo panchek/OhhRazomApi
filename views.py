@@ -13,6 +13,14 @@ from django.db.models import F
 from django.db.models import Sum, Count, Case, When, DecimalField
 
 
+class StageMapping:
+    MAPPING = {
+        'Done':'Done',
+        'In_progress': 'In progress',
+        'To_do': 'To do',
+        'On_hold': 'On hold'
+    }
+
 class StoryTestApi(generics.ListCreateAPIView):
         queryset = RkCompany.objects.filter(rk_id=69)   #32
         serializer_class = RkCompanySerializer
@@ -318,6 +326,7 @@ class AdvProductStatistic(APIView):
 class ViewActionDetails(APIView):
     def post(self, request, *args, **kwargs):
         request_data = request.data
+        print(request_data)
         response_data = RkCompany.objects\
                             .filter(rk__id__in=[i["id"] for i in request_data]) \
                             .exclude(comment__isnull=True) \
@@ -326,8 +335,20 @@ class ViewActionDetails(APIView):
                                 "rk__RK",
                                 "comment",
                             )
-        print(response_data)
         return JsonResponse({'data': list(response_data)})
+
+class AddNewProduct(APIView):
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        input_values = request.data
+        new_product = Rk(
+                        RK=input_values['RK_name'],
+                        client=Client.objects.get(client = input_values['client_name']),
+                        Stage=StageMapping.MAPPING[input_values['stage']],
+                        end_date=input_values['end_date']
+                    )
+        new_product.save()
+        return JsonResponse({'data': 'success'})
 
 
 
