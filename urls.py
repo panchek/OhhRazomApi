@@ -18,6 +18,10 @@ urlpatterns = [
     path('api/advproductstatistic', AdvProductStatistic.as_view()),
     path('api/viewactiondetails', ViewActionDetails.as_view()),
     path('api/addproduct' , AddNewProduct.as_view()),
+    path('api/deleterk', DeleteRK.as_view()),
+    path('api/getrksettings/<str:rk>', GetRkSettings.as_view()),
+    path('api/getrksettings/plusimg/<str:rk>', GetRkSettingsWithImg.as_view()),
+    path('api/addnewrk', AddNewRk.as_view()),
 
     path('api/rktest', StoryTestApi.as_view()),
     path('api/rktest/2', StoryTestApi2.as_view()),

@@ -11,11 +11,13 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import JsonResponse
 from django.db.models import F
 from django.db.models import Sum, Count, Case, When, DecimalField
+import requests
+import urllib3
 
 
 class StageMapping:
     MAPPING = {
-        'Done':'Done',
+        'Done': 'Done',
         'In_progress': 'In progress',
         'To_do': 'To do',
         'On_hold': 'On hold'
@@ -223,7 +225,7 @@ class GetData(APIView):
     serializer_class = RkCompanySerializer
 
     def post(self, request, *args, **kwargs):
-        print(request.data)
+        # print(request.data)
         rk_name = request.data['rk_name']
         city_name = request.data['city_name'].split(',')
         format_name = request.data['format_name'].split(',')
@@ -250,7 +252,6 @@ class GetData(APIView):
             print('Oopps')
 
 class GetCabinetInfo(APIView):
-
 
     def get(self, request, *args, **kwargs):
         dataClient = Client.objects.filter(founder_id=request.user.id) \
@@ -290,7 +291,7 @@ class GetCabinetInfo(APIView):
 
         json_response = {'dataClient': list(dataClient),
                           'dataRK': list(dataRK)}
-        print(json_response)
+        # print(json_response)
         return JsonResponse({'data': json_response})
 
 class AdvProductStatistic(APIView):
@@ -320,13 +321,13 @@ class AdvProductStatistic(APIView):
                         .values_list("rkcompany__Razom_number__city_standart__city_standart_UA").distinct())
             },
         ]
-        print(responce_data)
+        # print(responce_data)
         return JsonResponse({'data': responce_data})
 
 class ViewActionDetails(APIView):
     def post(self, request, *args, **kwargs):
         request_data = request.data
-        print(request_data)
+        # print(request_data)
         response_data = RkCompany.objects\
                             .filter(rk__id__in=[i["id"] for i in request_data]) \
                             .exclude(comment__isnull=True) \
@@ -339,7 +340,7 @@ class ViewActionDetails(APIView):
 
 class AddNewProduct(APIView):
     def post(self, request, *args, **kwargs):
-        print(request.data)
+        # print(request.data)
         input_values = request.data
         new_product = Rk(
                         RK=input_values['RK_name'],
@@ -349,6 +350,80 @@ class AddNewProduct(APIView):
                     )
         new_product.save()
         return JsonResponse({'data': 'success'})
+
+class DeleteRK(APIView):
+    def post(self, request, *args, **kwargs):
+        Rk.objects.filter(id__in=[i["id"] for i in request.data]).delete()
+        return JsonResponse({'data': 'success'})
+
+
+class GetRkSettings(APIView):
+    def get(self, request, rk, *args, **kwargs):
+        data = RkCompany.objects\
+                    .filter(rk__RK=rk) \
+                    .values(
+                        "Razom_number__city_standart__city_standart_UA",
+                        "Razom_number__adress__adress_UA",
+                        "Razom_number__Contractor__Contractor_UA",
+                        "Razom_number__Self_number",
+                        "Razom_number__Razom_number",
+                        "Razom_number__doors",
+                        "Razom_number__type__typeUA",
+                        "Razom_number__format__format",
+                        "Razom_number__OTS",
+                        "Razom_number__GRP",
+                        "price",
+                        "story__story",
+                        "story__color"
+                    )
+        return JsonResponse( {'data': list( data )} )
+
+
+class GetRkSettingsWithImg(APIView):
+    def get(self, request, rk, *args, **kwargs):
+        data = RkCompany.objects\
+                    .filter(rk__RK=rk) \
+                    .values(
+                        "Razom_number__city_standart__city_standart_UA",
+                        "Razom_number__adress__adress_UA",
+                        "Razom_number__Contractor__Contractor_UA",
+                        "Razom_number__Self_number",
+                        "Razom_number__Razom_number",
+                        "Razom_number__doors",
+                        "Razom_number__type__typeUA",
+                        "Razom_number__format__format",
+                        "Razom_number__OTS",
+                        "Razom_number__GRP",
+                        "price",
+                        "story__story",
+                        "story__color",
+                        "Razom_number__imagePhoto",
+                        "Razom_number__imageShema",
+                    )
+        for id, i in enumerate( list( data ) ):
+            http = urllib3.PoolManager()
+            req_photo = http.request( "GET", "https://ac.rzm.com.ua/media/" + i["Razom_number__imagePhoto"] ).status
+            req_shema = http.request("GET", "https://ac.rzm.com.ua/media/" + i["Razom_number__imageShema"]).status
+            if req_photo == 200:
+                i["Razom_number__imagePhoto"] = 1
+            else:
+                i["Razom_number__imagePhoto"] = 0
+            if req_shema == 200:
+                i["Razom_number__imageShema"] = 1
+            else:
+                i["Razom_number__imageShema"] = 0
+
+
+        return JsonResponse( {'data': list( data )} )
+
+class AddNewRk(APIView):
+    # 1025314
+    def post(self, request, *args, **kwargs):
+        param = request.data["SelectedButtonName"]
+        values = [i for i in request.data["AddRkText"].split("\n") if i !='']
+        print( values )
+
+
 
 
 
