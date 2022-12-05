@@ -11,9 +11,19 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import JsonResponse
 from django.db.models import F
 from django.db.models import Sum, Count, Case, When, DecimalField
-import requests
 import urllib3
 
+from OhhRazomApi.UserView import Users
+
+
+
+
+
+class Managers(Users):
+    pass
+
+class Clients(Users):
+    pass
 
 class StageMapping:
     MAPPING = {
@@ -31,58 +41,13 @@ class StoryTestApi(generics.ListCreateAPIView):
 #         queryset = Rk.objects.filter(client_id=8)
 #         serializer_class = RkSerializer
 class GetRK(APIView):
-        # permission_classes = (IsAuthenticated,)
-        serializer_class = RkSerializer
 
         def get(self, request, *args, **kwargs):
-                # if request.user.is_authenticated:
-                        data = Rk.objects.filter(client__founder__id=request.user.id)
-                        serializer = RkSerializer(data, many=True)
-                        return Response(serializer.data)
-
-
-# class GetAutoCompleteList(APIView):
-#     # permission_classes = (IsAuthenticated,)
-#     serializer_class = RkCompanySerializer
-#
-#     def get(self, request, rk_name, filter_type_name, *args, **kwargs):
-#         # if request.user.is_authenticated:
-#         # if rk_name is not 'null':
-#             MAPPING = {
-#                         'Razom_number__city_standart': 'id',
-#                         'Razom_number__city_standart__city_standart_UA': 'value_name',
-#                         'Razom_number__format': 'id',
-#                         'Razom_number__format__format': 'value_name',
-#                        }
-#             if filter_type_name == 'city':
-#                 data = RkCompany.objects.filter(rk__RK=rk_name)\
-#                         .values(
-#                             'Razom_number__city_standart__city_standart_UA',
-#                             'Razom_number__city_standart')
-#
-#             elif filter_type_name == 'format':
-#                 data = RkCompany.objects.filter(rk__RK=rk_name)\
-#                         .values(
-#                             'Razom_number__format',
-#                             'Razom_number__format__format')
-#             # print('000000', data)
-#             data = list(data)
-#             list1 = []
-#             for i in data:
-#                 ne = {MAPPING[key]: value for key, value in i.items()}
-#                 list1.append(ne)
-#             # print(list1)
-#             res = list({i['id']: i for i in list1}.values())
-#
-#
-#             # serializer = RkCompanySerializer(data, many=True)
-#             return JsonResponse({'data': res})
-
+            user_inst = Users(request.user.id)
+            data = user_inst.get_rk(fields=["id", "RK"])
+            return JsonResponse({'data': data})
 
 class GetAutoCompleteList(APIView):
-    # permission_classes = (IsAuthenticated,)
-    serializer_class = RkCompanySerializer
-
 
     def post(self, request, *args, **kwargs):
             rk_name = request.data['rk_name']
@@ -117,17 +82,13 @@ class GetAutoCompleteList(APIView):
                         .values(
                             'Razom_number__format',
                             'Razom_number__format__format')
-            # print('000000', data)
             data = list(data)
             list1 = []
             for i in data:
                 ne = {MAPPING[key]: value for key, value in i.items()}
                 list1.append(ne)
-            # print(list1)
             res = list({i['id']: i for i in list1}.values())
 
-
-            # serializer = RkCompanySerializer(data, many=True)
             return JsonResponse({'data': res})
 
 
@@ -156,20 +117,17 @@ class LogIn(APIView):
 
         def get(self, request, *args, **kwargs):
                 if request.user.is_authenticated:
-                        return Response(status=status.HTTP_200_OK)
+                    return Response(status=status.HTTP_200_OK)
                 else:
-                        return Response(status=status.HTTP_401_UNAUTHORIZED)
+                    return Response(status=status.HTTP_401_UNAUTHORIZED)
 
 
 class LogOut(APIView):
-    permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
 
     def post(self, request):
         try:
-            refresh_token = request.data["refresh_token"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-
+            Users.log_out(refresh_token=request.data["refresh_token"])
             return Response(status=status.HTTP_200_OK)
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -417,12 +375,66 @@ class GetRkSettingsWithImg(APIView):
         return JsonResponse( {'data': list( data )} )
 
 class AddNewRk(APIView):
-    # 1025314
     def post(self, request, *args, **kwargs):
+        get_rk = request.data["rk_name"]
+        get_story = request.data["storyNameValue"]
+        get_color = request.data["storyColorValue"]
+        get_area_mark = [i for i in request.data["AddRkText"].split("\n") if i != '']
         param = request.data["SelectedButtonName"]
-        values = [i for i in request.data["AddRkText"].split("\n") if i !='']
-        print( values )
+        print( get_area_mark )
+        success_message = []
+        error_message = []
+        if param == 'Razom number':
+            try:
+                story = Story.objects.filter(rk=Rk.objects.get( RK=get_rk ) ).get(story=get_story)
+            except:
+                try:
+                    story = Story(
+                        rk = Rk.objects.get( RK=get_rk ),
+                        story = get_story,
+                        color = get_color
+                    )
+                    story.save()
+                except:
+                    print( 'error with story' )
+            for i in get_area_mark:
+                try:
+                    RkCompany.objects.filter( rk=Rk.objects.get( RK=get_rk ) ).get( Razom_number = Totalplanes.objects.get( Razom_number= int( i ) ) )
+                    print( 'This area mark already exists' )
+                    error_message.append(f'This area mark already exists {i}')
+                except:
+                    try:
+                        tmp_rz =  Totalplanes.objects.get( Razom_number= int( i ) )
+                        RkCompany(
+                            rk=Rk.objects.get( RK=get_rk  ),
+                            Razom_number=tmp_rz,
+                            story= story
+                        ).save()
+                        success_message.append(f'Success {i}')
+                    except:
+                        print( "This area mark doest'n in our data base" )
+                        return JsonResponse( {"data": None, "error": "This area mark doest'n in our data base"} )
+        else:
+            pass
+        return JsonResponse({"success": success_message, "error": error_message})
 
+
+class DeleteRK_2(APIView):
+    def post(self, request, *args, **kwargs):
+        RkCompany.objects.filter(Razom_number__Razom_number__in=[i["Razom_number"] for i in request.data]).delete()
+        return JsonResponse({'data': 'success'})
+
+class ChangePrice(APIView):
+    def post(self, request, *args, **kwargs):
+            print( request.data )
+            tmp_plane = RkCompany.objects.filter(rk__RK=request.data["rk"]).get( Razom_number__Razom_number=request.data["razom_number"] )
+            tmp_plane.price = int( request.data["new_price"] )
+            tmp_plane.save()
+            return JsonResponse({'data': 'success'})
+
+class ExportToExcel(APIView):
+    def post(self, request, *args, **kwargs):
+        print( [i["id"] for i in request.data] )
 
 
 

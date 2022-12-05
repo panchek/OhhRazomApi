@@ -22,6 +22,9 @@ urlpatterns = [
     path('api/getrksettings/<str:rk>', GetRkSettings.as_view()),
     path('api/getrksettings/plusimg/<str:rk>', GetRkSettingsWithImg.as_view()),
     path('api/addnewrk', AddNewRk.as_view()),
+    path('api/deleterk2', DeleteRK_2.as_view()),
+    path('api/changeprice', ChangePrice.as_view()),
+    path('api/exportexcel', ExportToExcel.as_view()),
 
     path('api/rktest', StoryTestApi.as_view()),
     path('api/rktest/2', StoryTestApi2.as_view()),
